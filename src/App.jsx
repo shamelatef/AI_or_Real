@@ -313,11 +313,51 @@ function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate, sessi
   const setField = (i, field, val) =>
     setRounds(r => r.map((rd, idx) => idx === i ? { ...rd, [field]: val } : rd));
 
+  const importRef = useRef(null);
+
+  const handleExport = () => {
+    const data = JSON.stringify({ duration, rounds }, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'spot-the-ai-game.json'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = (e) => {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.rounds) { setRounds(data.rounds); if (data.duration) setDuration(data.duration); }
+        else alert('Invalid file — no rounds found.');
+      } catch { alert('Could not read file. Make sure it is a valid game export.'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div style={{ ...pg, alignItems: 'stretch', justifyContent: 'flex-start' }}>
       <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', paddingTop: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: '#f0e040', fontFamily: 'monospace', marginBottom: 4 }}>⚙️ HOST SETUP</div>
-        <div style={{ color: '#555', fontSize: 12, marginBottom: 20 }}>Paste image URLs or upload files · mark which is AI · click Generate</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 20, fontWeight: 900, color: '#f0e040', fontFamily: 'monospace', marginBottom: 4 }}>⚙️ HOST SETUP</div>
+            <div style={{ color: '#555', fontSize: 12 }}>Paste image URLs or upload files · mark which is AI · click Generate</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={handleExport}
+              style={{ ...btn('#1a1a2e', '#f0e040', true), border: '1.5px solid #2a2a3e' }}>
+              ⬇ Export
+            </button>
+            <button onClick={() => importRef.current?.click()}
+              style={{ ...btn('#1a1a2e', '#f0e040', true), border: '1.5px solid #2a2a3e' }}>
+              ⬆ Import
+            </button>
+            <input ref={importRef} type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+          </div>
+        </div>
 
         <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <label style={{ color: '#888', fontSize: 13, whiteSpace: 'nowrap' }}>Seconds / round</label>
