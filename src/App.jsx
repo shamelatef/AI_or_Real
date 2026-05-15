@@ -197,6 +197,7 @@ function HostFlow() {
   };
 
   const doReveal = async () => {
+    if (revealedRef.current) return;
     revealedRef.current = true;
     clearInterval(timerRef.current);
     setHostPhase('reveal');
@@ -204,6 +205,15 @@ function HostFlow() {
     const as = await getAnswers(session);
     setAnswers(as);
   };
+
+  // Auto-reveal when every player has answered
+  useEffect(() => {
+    if (hostPhase !== 'question') return;
+    const roundAnswerCount = answers.filter(a => a.round === round).length;
+    if (players.length > 0 && roundAnswerCount >= players.length) {
+      doReveal();
+    }
+  }, [answers, players, hostPhase, round]);
 
   const doNext = async () => {
     if (round + 1 >= rounds.length) {
