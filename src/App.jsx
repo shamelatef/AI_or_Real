@@ -129,7 +129,9 @@ function Landing() {
 // ─── HOST FLOW ────────────────────────────────────────────────────────────────
 function HostFlow() {
   const [hostPhase, setHostPhase] = useState('setup');
-  const [rounds, setRounds] = useState(DEFAULT_ROUNDS);
+  const [rounds, setRounds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('aig-rounds')) || DEFAULT_ROUNDS; } catch { return DEFAULT_ROUNDS; }
+  });
   const [duration, setDuration] = useState(20);
   const [session] = useState(genId);
   const [playerUrl, setPlayerUrl] = useState('');
@@ -177,6 +179,7 @@ function HostFlow() {
   }, [hostPhase, roundStart, duration]);
 
   const doGenerate = () => {
+    localStorage.setItem('aig-rounds', JSON.stringify(rounds));
     const cfg = { session, duration, rounds };
     const base = window.location.href.split('?')[0];
     // Short URL — config lives in Supabase, players fetch it by session ID
