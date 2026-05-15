@@ -39,8 +39,8 @@ function calcMyScore(myAnswers, rounds) {
 
 const DEFAULT_ROUNDS = Array.from({ length: 10 }, (_, i) => ({
   label: `Round ${i + 1}`,
-  a: `https://picsum.photos/seed/demo-a${i + 1}/700/480`,
-  b: `https://picsum.photos/seed/demo-b${i + 1}/700/480`,
+  a: '',
+  b: '',
   ai: 0,
 }));
 
