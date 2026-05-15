@@ -319,6 +319,15 @@ function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate, sessi
 
   const importRef = useRef(null);
 
+  const setRoundCount = (n) => {
+    const count = Math.max(1, Math.min(20, n));
+    setRounds(r => {
+      if (count > r.length)
+        return [...r, ...Array.from({ length: count - r.length }, (_, i) => ({ label: `Round ${r.length + i + 1}`, a: '', b: '', ai: 0 }))];
+      return r.slice(0, count);
+    });
+  };
+
   const handleExport = () => {
     const data = JSON.stringify({ duration, rounds }, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
@@ -363,11 +372,21 @@ function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate, sessi
           </div>
         </div>
 
-        <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-          <label style={{ color: '#888', fontSize: 13, whiteSpace: 'nowrap' }}>Seconds / round</label>
-          <input type="range" min={10} max={60} step={5} value={duration}
-            onChange={e => setDuration(+e.target.value)} style={{ flex: 1, accentColor: '#f0e040' }} />
-          <span style={{ color: '#f0e040', fontWeight: 700, fontFamily: 'monospace', minWidth: 36 }}>{duration}s</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <label style={{ color: '#888', fontSize: 13, whiteSpace: 'nowrap' }}>Seconds / round</label>
+            <input type="range" min={10} max={60} step={5} value={duration}
+              onChange={e => setDuration(+e.target.value)} style={{ flex: 1, accentColor: '#f0e040' }} />
+            <span style={{ color: '#f0e040', fontWeight: 700, fontFamily: 'monospace', minWidth: 36 }}>{duration}s</span>
+          </div>
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <label style={{ color: '#888', fontSize: 13, whiteSpace: 'nowrap' }}>Number of rounds</label>
+            <button onClick={() => setRoundCount(rounds.length - 1)}
+              style={{ ...btn('#1a1a2e', '#f0e040', true), border: '1.5px solid #2a2a3e', padding: '6px 14px', fontSize: 18 }}>−</button>
+            <span style={{ color: '#f0e040', fontWeight: 700, fontFamily: 'monospace', fontSize: 18, minWidth: 28, textAlign: 'center' }}>{rounds.length}</span>
+            <button onClick={() => setRoundCount(rounds.length + 1)}
+              style={{ ...btn('#1a1a2e', '#f0e040', true), border: '1.5px solid #2a2a3e', padding: '6px 14px', fontSize: 18 }}>+</button>
+          </div>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
