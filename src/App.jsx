@@ -179,7 +179,6 @@ function HostFlow() {
   }, [hostPhase, roundStart, duration]);
 
   const doGenerate = () => {
-    localStorage.setItem('aig-rounds', JSON.stringify(rounds));
     const cfg = { session, duration, rounds };
     const base = window.location.href.split('?')[0];
     // Short URL — config lives in Supabase, players fetch it by session ID
@@ -310,6 +309,11 @@ function ImageSlot({ label, url, onChange, roundIdx, slot, session }) {
 }
 
 function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate, session }) {
+  // Persist rounds (including correct answers) on every change
+  useEffect(() => {
+    localStorage.setItem('aig-rounds', JSON.stringify(rounds));
+  }, [rounds]);
+
   const setField = (i, field, val) =>
     setRounds(r => r.map((rd, idx) => idx === i ? { ...rd, [field]: val } : rd));
 
