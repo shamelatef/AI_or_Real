@@ -182,7 +182,8 @@ function HostFlow() {
     localStorage.setItem('aig-rounds', JSON.stringify(rounds));
     const cfg = { session, duration, rounds };
     const base = window.location.href.split('?')[0];
-    const url = `${base}?c=${encodeConfig(cfg)}`;
+    // Short URL — config lives in Supabase, players fetch it by session ID
+    const url = `${base}?s=${session}`;
     setPlayerUrl(url);
     upsertGameState(session, { phase: 'lobby', round: 0, round_start: null, config: cfg });
     setHostPhase('lobby');
@@ -675,12 +676,38 @@ function PlayerFlow({ config }) {
 export default function App() {
   const params = new URLSearchParams(window.location.search);
   const mode = params.get('mode');
-  const configB64 = params.get('c');
+  const sessionId = params.get('s');
 
   if (mode === 'host') return <HostFlow />;
-  if (configB64) {
-    const config = decodeConfig(configB64);
-    if (config) return <PlayerFlow config={config} />;
-  }
+  if (sessionId)      return <PlayerBootstrap sessionId={sessionId} />;
   return <Landing />;
+}
+
+// Fetches game config from Supabase then hands off to PlayerFlow
+function PlayerBootstrap({ sessionId }) {
+  const [config, setConfig] = useState(null);
+  const [error, setError]   = useState(false);
+
+  useEffect(() => {
+    getGameState(sessionId).then(gs => {
+      if (gs?.config) setConfig({ ...gs.config, session: sessionId });
+      else setError(true);
+    });
+  }, [sessionId]);
+
+  if (error) return (
+    <div style={{ ...pg, textAlign: 'center' }}>
+      <div style={{ fontSize: 48 }}>⚠️</div>
+      <div style={{ color: '#ff6b6b', fontFamily: 'monospace', fontSize: 18, marginTop: 12 }}>Game not found</div>
+      <div style={{ color: '#555', fontSize: 13, marginTop: 8 }}>Ask the host to regenerate the QR code.</div>
+    </div>
+  );
+
+  if (!config) return (
+    <div style={{ ...pg, textAlign: 'center' }}>
+      <div style={{ color: '#555', fontFamily: 'monospace', fontSize: 14 }}>Joining game…</div>
+    </div>
+  );
+
+  return <PlayerFlow config={config} />;
 }
