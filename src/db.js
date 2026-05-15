@@ -52,6 +52,20 @@ export async function getPlayers(session) {
   return d ?? [];
 }
 
+// ── Storage ───────────────────────────────────────────────────────────────────
+export async function uploadImage(file, path) {
+  if (!hasDB) return null;
+  try {
+    const r = await fetch(`${BASE}/storage/v1/object/game-images/${path}`, {
+      method: 'POST',
+      headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': file.type, 'x-upsert': 'true' },
+      body: file,
+    });
+    if (!r.ok) return null;
+    return `${BASE}/storage/v1/object/public/game-images/${path}`;
+  } catch { return null; }
+}
+
 // ── Answers ───────────────────────────────────────────────────────────────────
 export async function submitAnswer(session, round, name, choice, elapsed) {
   return api('answers', {

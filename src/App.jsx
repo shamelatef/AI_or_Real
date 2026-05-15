@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import {
   hasDB, upsertGameState, getGameState, patchGameState,
-  joinGame, getPlayers, submitAnswer, getAnswers,
+  joinGame, getPlayers, submitAnswer, getAnswers, uploadImage,
 } from "./db.js";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -237,7 +237,7 @@ function HostFlow() {
   const roundAnswers = answers.filter(a => a.round === round);
 
   if (hostPhase === 'setup') return (
-    <HostSetup rounds={rounds} setRounds={setRounds} duration={duration} setDuration={setDuration} onGenerate={doGenerate} />
+    <HostSetup rounds={rounds} setRounds={setRounds} duration={duration} setDuration={setDuration} onGenerate={doGenerate} session={session} />
   );
 
   if (hostPhase === 'lobby') return (
@@ -268,7 +268,48 @@ function HostFlow() {
 }
 
 // ─── Host: Setup ──────────────────────────────────────────────────────────────
-function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate }) {
+function ImageSlot({ label, url, onChange, roundIdx, slot, session }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef(null);
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const path = `${session}/${roundIdx}-${slot}-${Date.now()}.${file.name.split('.').pop()}`;
+    const publicUrl = await uploadImage(file, path);
+    setUploading(false);
+    if (publicUrl) onChange(publicUrl);
+    else alert('Upload failed — check that the "game-images" bucket exists and is public in Supabase.');
+  };
+
+  return (
+    <div>
+      <div style={{ color: '#555', fontSize: 10, marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>
+        IMAGE {label} — URL or upload
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
+        <input value={url} onChange={e => onChange(e.target.value)}
+          placeholder="https://… or upload →" style={{ ...inp, flex: 1 }} />
+        {hasDB && (
+          <>
+            <button onClick={() => fileRef.current?.click()} disabled={uploading}
+              style={{ ...btn('#1a1a2e', uploading ? '#555' : '#f0e040', true), border: '1.5px solid #2a2a3e', whiteSpace: 'nowrap', padding: '8px 14px' }}>
+              {uploading ? '⏳' : '📁 Upload'}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{ display: 'none' }} />
+          </>
+        )}
+      </div>
+      {url && (
+        <img src={url} alt="" onError={e => e.target.style.display = 'none'}
+          style={{ width: '100%', height: 80, objectFit: 'cover', borderRadius: 6, display: 'block', border: '1px solid #2a2a3e' }} />
+      )}
+    </div>
+  );
+}
+
+function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate, session }) {
   const setField = (i, field, val) =>
     setRounds(r => r.map((rd, idx) => idx === i ? { ...rd, [field]: val } : rd));
 
@@ -276,7 +317,7 @@ function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate }) {
     <div style={{ ...pg, alignItems: 'stretch', justifyContent: 'flex-start' }}>
       <div style={{ maxWidth: 720, width: '100%', margin: '0 auto', paddingTop: 16 }}>
         <div style={{ fontSize: 20, fontWeight: 900, color: '#f0e040', fontFamily: 'monospace', marginBottom: 4 }}>⚙️ HOST SETUP</div>
-        <div style={{ color: '#555', fontSize: 12, marginBottom: 20 }}>Enter image URLs · mark which is AI · click Generate</div>
+        <div style={{ color: '#555', fontSize: 12, marginBottom: 20 }}>Paste image URLs or upload files · mark which is AI · click Generate</div>
 
         <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
           <label style={{ color: '#888', fontSize: 13, whiteSpace: 'nowrap' }}>Seconds / round</label>
@@ -293,15 +334,9 @@ function HostSetup({ rounds, setRounds, duration, setDuration, onGenerate }) {
                 <input value={rd.label} onChange={e => setField(i, 'label', e.target.value)}
                   placeholder={`Round ${i + 1} label…`} style={{ ...inp, flex: 1 }} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                <div>
-                  <div style={{ color: '#555', fontSize: 10, marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>IMAGE A — URL</div>
-                  <input value={rd.a} onChange={e => setField(i, 'a', e.target.value)} placeholder="https://…" style={inp} />
-                </div>
-                <div>
-                  <div style={{ color: '#555', fontSize: 10, marginBottom: 4, fontFamily: 'monospace', letterSpacing: 1 }}>IMAGE B — URL</div>
-                  <input value={rd.b} onChange={e => setField(i, 'b', e.target.value)} placeholder="https://…" style={inp} />
-                </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                <ImageSlot label="A" url={rd.a} onChange={v => setField(i, 'a', v)} roundIdx={i} slot="a" session={session} />
+                <ImageSlot label="B" url={rd.b} onChange={v => setField(i, 'b', v)} roundIdx={i} slot="b" session={session} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: '#555', fontSize: 12 }}>🤖 AI image is:</span>
