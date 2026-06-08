@@ -9,8 +9,10 @@ function genId() { return Math.random().toString(36).slice(2, 10); }
 function encodeConfig(cfg) { try { return btoa(JSON.stringify(cfg)); } catch { return ''; } }
 function decodeConfig(s) { try { return JSON.parse(atob(s)); } catch { return null; } }
 
-function calcLeaderboard(allAnswers, rounds, upToRound) {
+function calcLeaderboard(allAnswers, rounds, upToRound, allPlayers = []) {
   const map = {};
+  // Seed every registered player so no-shows / non-answerers still appear (with 0 pts)
+  allPlayers.forEach(p => { map[p.name] = { score: 0, correct: 0 }; });
   for (let r = 0; r <= upToRound && r < rounds.length; r++) {
     const correctIdx = rounds[r].ai;
     allAnswers.filter(a => a.round === r).forEach(a => {
@@ -167,7 +169,6 @@ function HostFlow() {
         const left = Math.max(0, Math.ceil(duration - elapsed));
         setTimer(left);
         if (left <= 0 && !revealedRef.current) {
-          revealedRef.current = true;
           clearInterval(timerRef.current);
           doReveal();
         }
@@ -232,7 +233,7 @@ function HostFlow() {
     setHostPhase('setup');
   };
 
-  const leaderboard = calcLeaderboard(answers, rounds, round);
+  const leaderboard = calcLeaderboard(answers, rounds, round, players);
   const roundAnswers = answers.filter(a => a.round === round);
 
   if (hostPhase === 'setup') return (
